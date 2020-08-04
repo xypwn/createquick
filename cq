@@ -1,0 +1,174 @@
+#!/usr/bin/env sh
+
+check_installed()
+{
+    if ! which $1 2>/dev/null >/dev/null; then
+        echo "Please install $1 from your package manager."
+        exit 1
+    fi
+    return 0
+}
+
+usage()
+{
+cat << EOF
+Usage: cq [arguments]                   Arguments cannot be put together into one string
+   or: cq <folder name> <template name> Create a new directory with the according template files; same as -l
+   or: cq <folder name>                 Same as above, but you can choose a template from an interactive fzf menu; same as -f -l
+
+Arguments:
+    -h                               Show this help page
+    -L                               List out all available templates
+    -f                               Use an interactive fzf menu; must be combined with -l, -d or -D; needs to preceed other commands
+    -l <folder name> <template name> Load a template, default when providing only a folder name
+    -c <template name>               Create a new template based on the contents of the current folder
+    -d <template name>               Delete a template (will prompt before deleting)
+    -D <template name>               Load all files of the specified template into the current folder, instead of creating a new one
+EOF
+    return 0
+}
+
+fzf_template()
+{
+    FZF_TEMPLATE_RET=$(ls $CONFIG_DIR/$TEMPLATE_DIR | fzf)
+    return 0
+}
+
+[ $# = 0 ] && usage && exit 1
+
+# Check if all dependencies are installed
+check_installed fzf
+
+# Define config directories (and create them if necessary)
+[ -z $XDG_CONFIG_HOME ] && XDG_CONFIG_HOME="$HOME/.config"
+CONFIG_DIR="$XDG_CONFIG_HOME/createquick"
+TEMPLATE_DIR="templates"
+
+[ ! -d $CONFIG_DIR ] && mkdir $CONFIG_DIR
+[ ! -d $CONFIG_DIR/$TEMPLATE_DIR ] && mkdir $CONFIG_DIR/$TEMPLATE_DIR
+
+while [ ! -z "$1" ]; do
+    case "$1" in
+        -h|--help)
+            shift
+            USE_OPT_h="true"
+            ;;
+        -L)
+            shift
+            USE_OPT_L="true"
+            ;;
+        -f)
+            shift
+            USE_OPT_f="true"
+            ;;
+        -l)
+            shift
+            USE_OPT_l="true"
+            OPT_l=$1
+            [ -z $OPT_f ] && [ ! -z $2 ] &&
+                shift &&
+                OPT_l1=$1
+            ;;
+        -c)
+            shift
+            USE_OPT_c="true"
+            OPT_c=$1
+            ;;
+        -d)
+            shift
+            USE_OPT_d="true"
+            OPT_d=$1
+            ;;
+        -D)
+            shift
+            USE_OPT_D="true"
+            OPT_D=$1
+            ;;
+        *)
+            if [ -z $FOLDER_NAME ]; then
+                FOLDER_NAME=$1
+            else
+                TEMPLATE_NAME=$1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# -h
+[ ! -z $USE_OPT_h ] && usage && exit 0
+
+# -L
+[ ! -z $USE_OPT_L ] && ls $CONFIG_DIR/$TEMPLATE_DIR && exit 0
+
+# -l
+if [ ! -z $USE_OPT_l ]; then
+    [ -d $OPT_l ] && echo "Folder $OPT_l already exists" && exit 1
+    # if -f was given
+    if [ ! -z $USE_OPT_f ]; then
+        fzf_template
+        OPT_l1=$FZF_TEMPLATE_RET
+        [ -z $FZF_TEMPLATE_RET ] && exit 1
+    else
+        [ -z $OPT_l1 ] && echo "Expected 2 strings after -l (or 1 string if -f was also given)" && exit 1
+    fi
+    T_DIR="$CONFIG_DIR/$TEMPLATE_DIR/$OPT_l1"
+    [ ! -d $T_DIR ] && echo "Cannot find template $OPT_l1" && exit 1
+    mkdir $OPT_l
+    cp -r $T_DIR/* $OPT_l/
+    exit 0
+fi
+
+# -c
+if [ ! -z $USE_OPT_c ]; then
+    [ -z $OPT_c ] && echo "Expected string after -c" && exit 1
+    T_DIR="$CONFIG_DIR/$TEMPLATE_DIR/$OPT_c"
+    [ -d $T_DIR ] && echo "Template $OPT_c already exists, please use a different name" && exit 1
+    mkdir $T_DIR
+    cp -r ./* $T_DIR/
+    exit 0
+fi
+
+# -d
+if [ ! -z $USE_OPT_d ]; then
+    # if -f was given
+    if [ ! -z $USE_OPT_f ]; then
+        fzf_template
+        OPT_d=$FZF_TEMPLATE_RET
+        [ -z $FZF_TEMPLATE_RET ] && exit 1
+    else
+        [ -z $OPT_d ] && echo "Expected string after -d" && exit 1
+    fi
+    T_DIR="$CONFIG_DIR/$TEMPLATE_DIR/$OPT_d"
+    [ ! -d $T_DIR ] && echo "Could not find template $OPT_d" && exit 1
+    printf "Remove template $OPT_d?(y/N)"
+    read ANSWER
+    [ "$ANSWER" = "y" ] && rm -rf $T_DIR && echo "Successfully removed template $OPT_d" && exit 0
+    echo "Canceled"
+    exit 0
+fi
+
+# -D
+if [ ! -z $USE_OPT_D ]; then
+    # if -f was given
+    if [ ! -z $USE_OPT_f ]; then
+        fzf_template
+        OPT_D=$FZF_TEMPLATE_RET
+        [ -z $FZF_TEMPLATE_RET ] && exit 1
+    else
+        [ -z $1 ] && echo "Expected string after -D" && exit 1
+    fi
+    T_DIR="$CONFIG_DIR/$TEMPLATE_DIR/$OPT_D"
+    [ ! -d $T_DIR ] && echo "Could not find template $OPT_d" && exit 1
+    cp -r $T_DIR/* .
+    exit 0
+fi
+
+# default 2 option action (see usage)
+[ ! -z $FOLDER_NAME ] && [ ! -z $TEMPLATE_NAME ] && sh $0 -l $FOLDER_NAME $TEMPLATE_NAME && exit 0
+
+# default 1 option action (see usage)
+[ ! -z $FOLDER_NAME ] && sh $0 -f -l $FOLDER_NAME && exit 0
+
+# if -f was given with nothing else
+[ ! -z $USE_OPT_f ] && usage && exit 1

@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+[ ! -e /usr/bin/cq ] && echo "createquick is not installed" && exit 1
+if [ $USER = root ]; then
+    SUDO=""
+elif [ ! -z $(which sudo) ]; then
+    SUDO=sudo
+elif [ ! -z $(which doas) ]; then
+    SUDO=doas
+else
+    USE_SU="true"
+fi
+MSG="Successfully removed createquick"
+THISDIR=$(dirname $0)
+chmod +x $THISDIR/cq
+COMMAND="rm /usr/bin/cq && echo $MSG"
+if [ ! -z $USE_SU ]; then
+    su -c "$COMMAND"
+else
+    sh -c "$SUDO $COMMAND"
+fi
