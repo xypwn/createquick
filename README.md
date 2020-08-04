@@ -11,5 +11,5 @@ For the help page, enter `$ cq -h`
 - Create a folder and put your template files in it
 - In the folder, run: `$ cq -c <template name>`
 ### Loading templates
-- Simplest: `$ cq <folder name>` will put you into a TUI where you can select a template, the contents of which will then be put into a folder with the specified name in you current directory
+- Simplest: `$ cq <folder name>` will put you into a TUI where you can select a template, the contents of which will then be put into a new folder with the specified name
 - See the help page for further options
