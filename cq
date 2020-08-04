@@ -19,7 +19,7 @@ Usage: cq [arguments]                   Arguments cannot be put together into on
 Arguments:
     -h                               Show this help page
     -L                               List out all available templates
-    -f                               Use an interactive fzf menu; must be combined with -l, -d or -D; needs to preceed other commands
+    -f                               Use an interactive fzf menu; must be combined with -l, -d or -D
     -l <folder name> <template name> Load a template, default when providing only a folder name
     -c <template name>               Create a new template based on the contents of the current folder
     -d <template name>               Delete a template (will prompt before deleting)
@@ -44,9 +44,19 @@ check_installed fzf
 CONFIG_DIR="$XDG_CONFIG_HOME/createquick"
 TEMPLATE_DIR="templates"
 
+# Setup fzf preview
+export FZF_DEFAULT_OPTS="--preview='find $CONFIG_DIR/$TEMPLATE_DIR/\${} -type f | xargs head'"
+
+# Create config directories if necessary
 [ ! -d $CONFIG_DIR ] && mkdir $CONFIG_DIR
 [ ! -d $CONFIG_DIR/$TEMPLATE_DIR ] && mkdir $CONFIG_DIR/$TEMPLATE_DIR
 
+# Check for -f flag first, so that it doesn't have to precede another option
+for i in "$@"; do
+    [ "$i" = "-f" ] && USE_OPT_f="true"
+done
+
+# Check for options besides toggles like -f
 while [ ! -z "$1" ]; do
     case "$1" in
         -h|--help)
@@ -58,8 +68,8 @@ while [ ! -z "$1" ]; do
             USE_OPT_L="true"
             ;;
         -f)
+            # Ignore this option, as it was already tested for previously
             shift
-            USE_OPT_f="true"
             ;;
         -l)
             shift
