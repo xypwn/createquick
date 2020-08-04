@@ -1,9 +1,9 @@
 # createquick
 A simple shell script that manages project/document templates
 ## Installation
-Clone the git repo and cd into the folder: `$ git clone https://github.com/xypwn/createquick.git && cd createquick`
-Run the install script: `$ sh install-sh`
-(Optional) Delete the git repo: `$ cd ..; rm -rf createquick`
+- Clone the git repo and cd into the folder: `$ git clone https://github.com/xypwn/createquick.git && cd createquick`
+- Run the install script: `$ sh install-sh`
+- (Optional) Delete the git repo: `$ cd ..; rm -rf createquick`
 ## Usage
 For the help page, enter `$ cq -h`
 - You can list out all available templates with `$ cq -L`
